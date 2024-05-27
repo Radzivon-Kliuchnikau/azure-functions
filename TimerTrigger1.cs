@@ -18,11 +18,13 @@ namespace Company.Function
         [Function("TimerTrigger1")]
         public async Task Run([TimerTrigger("0 */1 * * * *")] TimerInfo myTimer)
         {
+            string intitleRequestFromSomeSource = "http";
+
             _logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
 
             _logger.LogInformation($"SLACK_WEB_HOOK: {System.Environment.GetEnvironmentVariable("SLACK_WEB_HOOK", EnvironmentVariableTarget.Process)}");
 
-            var jsonString = await MakeStackOverflowRequest();
+            var jsonString = await MakeStackOverflowRequest(intitleRequestFromSomeSource);
 
             var jsonObject = JsonConvert.DeserializeObject<dynamic>(jsonString);
 
@@ -36,8 +38,10 @@ namespace Company.Function
             }
         }
 
-        public static async Task<string> MakeStackOverflowRequest()
+        public static async Task<string> MakeStackOverflowRequest(string intitle)
         {
+            var epochTime = (int)DateTime.UtcNow.AddDays(-365).Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+
             HttpClientHandler handler = new HttpClientHandler()
             {
                 AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
@@ -45,7 +49,7 @@ namespace Company.Function
 
             using (var client = new HttpClient(handler))
             {
-                var response = await client.GetAsync($"https://api.stackexchange.com/2.3/search?fromdate=1709251200&order=desc&sort=activity&intitle=rcs&site=stackoverflow");
+                var response = await client.GetAsync($"https://api.stackexchange.com/2.3/search?fromdate={epochTime}&order=desc&sort=activity&intitle={intitle}&site=stackoverflow");
 
                 var result = await response.Content.ReadAsStringAsync();
 
